@@ -268,13 +268,16 @@ const T=window.TOON;
 function toonRead(){return S.toonRead||(S.toonRead=[]);}
 const CARDS=[['00','🔥 찐핵심 15'],['01','1주 벼·녹색혁명·기후'],['02','2주 작물·옥밀보감·콩'],['03','3주 원예학·작물분류'],['04','4주 온도·광량·광질'],['05','5주 스마트팜·에너지·제어'],['06','6주 수경·EC·pH'],['07','7주 생식·멘델·육종']];
 function studyCard(){
+  const read=toonRead(); const nx=T.find(e=>!read.includes(e.ep))||T[0];
+  const done=read.length;
   return `<div class="route">
-    <div class="route-h"><b>📚 쉽게 공부하는 순서</b><span>요약 카드 ${CARDS.length}장</span></div>
-    <ol class="steps"><li><b>1. 요약 카드</b> 빨간 글씨만</li><li><b>2. 개념 퀴즈</b> 주차별</li><li><b>3. 유형별 훈련</b> 계산·서술형</li><li><b>4. 오답만 다시</b> 기록 탭</li></ol>
-    <button class="big" data-go="toon">📇 요약 카드 보기</button>
+    <div class="route-h"><b>📚 쉽게 공부하는 순서</b><span>${done}/${T.length}화 완료</span></div>
+    <ol class="steps"><li class="${done?'ok':''}"><b>1. 웹툰으로 이해</b> 5분</li><li><b>2. 화 끝 3문제</b> 바로 확인</li><li><b>3. 유형별 훈련</b> 계산·서술형</li><li><b>4. 요약 카드</b> 시험 직전</li></ol>
+    <button class="big" data-go="toon/${nx.ep}">${done>=T.length?'🔁 다시 보기: ':'▶ 이어 보기: '}${nx.ep}화 「${esc(nx.title)}」</button>
+    <button class="big ghost" style="margin-top:8px" data-go="cards">📇 요약 카드 보기</button>
   </div>`;
 }
-function toonList(){
+function cardsView(){
   $app.innerHTML=`<section class="hero toon-hero"><small>시험 직전 벼락치기</small><h1>요약 카드</h1><p>빨간 글씨만 읽어도 됩니다 · 찐핵심 15부터</p></section>
   <div class="chips" id="cj">${CARDS.map(c=>`<button class="chip" data-j="${c[0]}">${c[0]==='00'?'찐핵심':(+c[0])+'주'}</button>`).join('')}</div>
   ${CARDS.map(c=>`<h2 class="sec" id="c${c[0]}">${c[1]}</h2><img src="img/${c[0]}.png" alt="${c[1]}" loading="lazy" style="width:100%;border-radius:16px;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08)">`).join('')}
@@ -301,11 +304,12 @@ function face(f,cx,cy,dark){
 function charSVG(who,f,flip){
   const t=flip?' transform="translate(120,0) scale(-1,1)"':'';
   if(who==='doc') return `<svg viewBox="0 0 120 130" class="ch-svg"><g${t}>
-   <g stroke="#2e7d32" stroke-width="3" stroke-linecap="round" fill="none"><path d="M18 60 q-12 -4 -14 -14"/><path d="M102 60 q12 -4 14 -14"/><path d="M30 26 q-6 -14 2 -22"/><path d="M90 26 q6 -14 -2 -22"/><path d="M60 18 v-14"/><path d="M28 110 q-8 8 -4 16"/><path d="M92 110 q8 8 4 16"/></g>
-   <ellipse cx="60" cy="68" rx="46" ry="48" fill="#81c784" stroke="#2e7d32" stroke-width="3"/>
-   <circle cx="40" cy="48" r="5" fill="#a5d6a7"/><circle cx="84" cy="90" r="6" fill="#a5d6a7"/><circle cx="34" cy="92" r="4" fill="#a5d6a7"/>
+   <path d="M60 22 q-4 -14 -16 -18 q8 10 10 20z M60 22 q6 -14 20 -16 q-10 8 -14 18z" fill="#66bb6a" stroke="#2e7d32" stroke-width="2"/>
+   <ellipse cx="60" cy="70" rx="40" ry="50" fill="#fff8e1" stroke="#c9a74a" stroke-width="3"/>
+   <path d="M60 22 v96" stroke="#e6d39a" stroke-width="2" opacity=".6"/>
    ${face(f,60,66)}
    <g fill="none" stroke="#3e2723" stroke-width="3"><circle cx="51" cy="63" r="10"/><circle cx="69" cy="63" r="10"/><path d="M61 63 h-2"/></g>
+   <path d="M30 104 l30 10 l30 -10 v10 l-30 12 l-30 -12z" fill="#2e7d32"/>
    </g></svg>`;
   return `<svg viewBox="0 0 120 130" class="ch-svg"><g${t}>
    <path d="M60 30 q-2 -16 -18 -22 q12 -2 20 10 q6 -14 22 -12 q-12 8 -22 24z" fill="#66bb6a" stroke="#2e7d32" stroke-width="2.5"/>
@@ -319,49 +323,49 @@ function charSVG(who,f,flip){
 
 // ---------- 그림 패널 SVG ----------
 const FIG={
- timeline:`<svg viewBox="0 0 600 150"><defs><marker id="ta" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="currentColor"/></marker></defs>
-  <line x1="20" y1="60" x2="585" y2="60" stroke="currentColor" stroke-width="4" marker-end="url(#ta)"/>
-  ${[['🧫','LUCA','38~40억 년',70],['🌊','시아노박테리아','27억 년, 산소 광합성',225],['💨','산소 대발생','혐기성 멸종',380],['🫧','세포내공생','진핵세포 탄생',525]].map(x=>`<g text-anchor="middle"><circle cx="${x[3]}" cy="60" r="24" fill="var(--card)" stroke="var(--g)" stroke-width="3"/><text x="${x[3]}" y="69" font-size="30.0">${x[0]}</text><text x="${x[3]}" y="108" font-size="20.0" font-weight="800" fill="currentColor">${x[1]}</text><text x="${x[3]}" y="130" font-size="16.2" fill="var(--sub)">${x[2]}</text></g>`).join('')}</svg>`,
- barcode:`<svg viewBox="0 0 600 170" font-size="18.0"><text x="10" y="22" font-weight="800" fill="var(--blue)">🦠 세균 = 16S rRNA (97% 이상 → 같은 종)</text>
-  <rect x="10" y="34" width="580" height="30" rx="6" fill="var(--bluel)" stroke="var(--blue)"/>${[70,190,310,430,520].map(x=>`<rect x="${x}" y="34" width="40" height="30" fill="var(--blue)"/>`).join('')}
-  <text x="10" y="84" font-size="15.0" fill="var(--sub)">연한 칸 = 보존 영역(프라이머 붙는 곳) · 진한 칸 = 변이 영역(종 구분)</text>
-  <text x="10" y="118" font-weight="800" fill="var(--g)">🍄 곰팡이 = ITS</text>
-  <g text-anchor="middle" font-weight="700"><rect x="10" y="128" width="140" height="32" rx="6" fill="var(--gl)" stroke="var(--g)"/><text x="80" y="149" fill="currentColor">18S</text><rect x="150" y="128" width="90" height="32" fill="#e53935"/><text x="195" y="149" fill="#fff">ITS1</text><rect x="240" y="128" width="70" height="32" fill="var(--gl)" stroke="var(--g)"/><text x="275" y="149" fill="currentColor">5.8S</text><rect x="310" y="128" width="90" height="32" fill="#e53935"/><text x="355" y="149" fill="#fff">ITS2</text><rect x="400" y="128" width="190" height="32" rx="6" fill="var(--gl)" stroke="var(--g)"/><text x="495" y="149" fill="currentColor">28S</text></g></svg>`,
- seqgen:`<svg viewBox="0 0 600 190" font-size="14">${[['1세대','Sanger','ddNTP로 멈춤','정확, 느림·비쌈','#78909c',10],['2세대','Illumina','브릿지 증폭','대량·저렴, 150~300bp','#1e88e5',205],['3세대','Nanopore','구멍 통과 전압','수십 kb~Mb, 반복 해결','#8e24aa',400]].map(x=>`<g><rect x="${x[5]}" y="10" width="185" height="170" rx="14" fill="${x[4]}"/><text x="${x[5]+92}" y="40" text-anchor="middle" fill="#fff" font-size="13" opacity=".9">${x[0]}</text><text x="${x[5]+92}" y="68" text-anchor="middle" fill="#fff" font-size="22" font-weight="800">${x[1]}</text><text x="${x[5]+92}" y="104" text-anchor="middle" fill="#fff">${x[2]}</text><text x="${x[5]+92}" y="134" text-anchor="middle" fill="#fff" font-size="12.5">${x[3]}</text><text x="${x[5]+92}" y="166" text-anchor="middle" font-size="22">${x[1]==='Sanger'?'🐢':x[1]==='Illumina'?'🖨️':'🚇'}</text></g>`).join('')}</svg>`,
- fair:`<svg viewBox="0 0 600 120" text-anchor="middle">${[['F','Findable','찾을 수 있게','#2e7d32'],['A','Accessible','접근 가능하게','#1e88e5'],['I','Interoperable','표준으로 호환','#fb8c00'],['R','Reusable','다시 쓸 수 있게','#8e24aa']].map((x,i)=>`<g><rect x="${8+i*148}" y="8" width="138" height="104" rx="14" fill="${x[3]}"/><text x="${77+i*148}" y="54" fill="#fff" font-size="38" font-weight="900">${x[0]}</text><text x="${77+i*148}" y="80" fill="#fff" font-size="15" font-weight="700">${x[1]}</text><text x="${77+i*148}" y="100" fill="#fff" font-size="12.5">${x[2]}</text></g>`).join('')}</svg>`,
- fastq:`<svg viewBox="0 0 600 200" font-size="15"><rect x="8" y="8" width="270" height="184" rx="12" fill="var(--bluel)"/><text x="22" y="36" font-weight="800" fill="var(--blue)">FASTA (2줄)</text><g font-family="monospace" font-size="16"><text x="22" y="74" fill="#e53935">&gt;seq1 E.coli</text><text x="22" y="100" fill="currentColor">ATGCGTACGTTA</text></g><text x="22" y="150" font-size="13" fill="var(--sub)">이름표 + 서열</text><text x="22" y="170" font-size="13" fill="var(--sub)">품질 정보 없음</text>
-  <rect x="294" y="8" width="298" height="184" rx="12" fill="var(--gl)"/><text x="308" y="36" font-weight="800" fill="var(--g)">FASTQ (4줄)</text><g font-family="monospace" font-size="16"><text x="308" y="70" fill="#e53935">@read1</text><text x="308" y="100" fill="currentColor">ATGCGTAC</text><text x="308" y="130" fill="#e53935">+</text><text x="308" y="160" fill="currentColor">IIII#!+I</text></g><g font-size="12.5" fill="var(--sub)"><text x="440" y="70">① ID</text><text x="440" y="100">② 서열</text><text x="440" y="130">③ +</text><text x="440" y="160">④ 품질(성적표)</text></g></svg>`,
- blast:`<svg viewBox="0 0 600 110" font-size="13.5" text-anchor="middle">${['단어로 쪼개기','Hit 찾기','확장 → HSP','Gap 허용','점수 계산'].map((t,i)=>`<g><rect x="${4+i*120}" y="20" width="108" height="64" rx="12" fill="${i===4?'#8e24aa':'var(--card)'}" stroke="#8e24aa" stroke-width="2"/><text x="${58+i*120}" y="48" font-size="20" fill="${i===4?'#fff':'#8e24aa'}" font-weight="900">${i+1}</text><text x="${58+i*120}" y="70" fill="${i===4?'#fff':'currentColor'}" font-weight="700">${t}</text>${i<4?`<text x="${117+i*120}" y="57" fill="#8e24aa" font-size="16">▶</text>`:''}</g>`).join('')}<text x="300" y="104" fill="var(--sub)" font-size="12.5">DNA 단어 길이 기본값 11 또는 7 · 단백질 3 (짧을수록 민감도↑ 속도↓)</text></svg>`,
- ortho:`<svg viewBox="0 0 600 220" font-size="16.1"><g stroke="currentColor" stroke-width="3" fill="none"><path d="M300 20 v40"/><path d="M180 60 h240"/><path d="M180 60 v50"/><path d="M420 60 v50"/><path d="M120 110 h120"/><path d="M360 110 h120"/><path d="M120 110 v50"/><path d="M240 110 v50"/><path d="M360 110 v50"/><path d="M480 110 v50"/></g>
-  <circle cx="300" cy="60" r="9" fill="#1e88e5"/><text x="316" y="50" fill="#1e88e5" font-weight="800">유전자 중복 (같은 종 안)</text>
-  <circle cx="180" cy="110" r="9" fill="#e53935"/><circle cx="420" cy="110" r="9" fill="#e53935"/><text x="20" y="100" fill="#e53935" font-weight="800">종 분화</text>
-  <g text-anchor="middle" font-weight="800" fill="currentColor"><text x="120" y="182">종1 · 1a</text><text x="240" y="182">종2 · 1a</text><text x="360" y="182">종1 · 1b</text><text x="480" y="182">종2 · 1b</text></g>
-  <g text-anchor="middle" fill="var(--g)" font-weight="800"><text x="180" y="145">Ortholog</text><text x="420" y="145">Ortholog</text></g>
-  <path d="M120 194 Q240 222 360 194" stroke="#8e24aa" stroke-width="2.5" fill="none" stroke-dasharray="6 4"/><text x="240" y="216" text-anchor="middle" fill="#8e24aa" font-weight="800">Paralog</text></svg>`,
- n50:`<svg viewBox="0 0 600 160" font-size="16.1"><text x="10" y="22" font-weight="800" fill="currentColor">총 100kb: 30, 25, 20, 15, 10 kb</text>
-  <g text-anchor="middle" font-weight="700"><rect x="10" y="36" width="174" height="36" fill="#2e7d32"/><text x="97" y="60" fill="#fff">30</text><rect x="184" y="36" width="145" height="36" fill="#e53935"/><text x="256" y="60" fill="#fff">25 ← N50</text><rect x="329" y="36" width="116" height="36" fill="#a5d6a7"/><text x="387" y="60" fill="#1d2a1f">20</text><rect x="445" y="36" width="87" height="36" fill="#c8e6c9"/><text x="488" y="60" fill="#1d2a1f">15</text><rect x="532" y="36" width="58" height="36" fill="#e8f5e9"/><text x="561" y="60" fill="#1d2a1f">10</text></g>
-  <line x1="300" y1="28" x2="300" y2="84" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 4"/><text x="300" y="100" text-anchor="middle" fill="var(--sub)">50kb(절반)</text>
-  <text x="10" y="128" fill="currentColor">30 + 25 = 55 ≥ 50 → <tspan fill="#e53935" font-weight="800">N50 = 25kb</tspan>, <tspan fill="#e53935" font-weight="800">L50 = 2개</tspan></text>
-  <text x="10" y="150" font-size="14.4" fill="var(--sub)">N50 클수록 · L50 작을수록 좋은 조립</text></svg>`,
- genes:`<svg viewBox="0 0 600 120" font-size="16.1" text-anchor="middle"><text x="40" y="34" font-weight="800" fill="currentColor">원핵</text><rect x="80" y="14" width="500" height="30" rx="6" fill="#2e7d32"/><text x="330" y="34" fill="#fff" font-weight="700">ATG ───── 쭉 이어진 코딩 ───── TAA</text>
-  <text x="40" y="94" font-weight="800" fill="currentColor">진핵</text><rect x="80" y="74" width="100" height="30" rx="6" fill="#1e88e5"/><text x="130" y="94" fill="#fff">Exon</text><line x1="180" y1="89" x2="270" y2="89" stroke="var(--sub)" stroke-width="4" stroke-dasharray="6 4"/><text x="225" y="70" font-size="13.8" fill="var(--sub)">Intron(광고)</text><rect x="270" y="74" width="90" height="30" rx="6" fill="#1e88e5"/><text x="315" y="94" fill="#fff">Exon</text><line x1="360" y1="89" x2="460" y2="89" stroke="var(--sub)" stroke-width="4" stroke-dasharray="6 4"/><rect x="460" y="74" width="120" height="30" rx="6" fill="#1e88e5"/><text x="520" y="94" fill="#fff">Exon</text></svg>`,
- rnaseq:`<svg viewBox="0 0 600 170" font-size="13" text-anchor="middle">${['설계','시퀀싱','품질관리','매핑','정량','차등발현','기능분석','시각화'].map((t,i)=>{const x=8+(i%4)*148,y=i<4?10:92;return `<g><rect x="${x}" y="${y}" width="136" height="66" rx="12" fill="${i<4?'#5e35b1':'#1e88e5'}"/><text x="${x+68}" y="${y+28}" fill="#fff" font-size="20" font-weight="900">${i+1}</text><text x="${x+68}" y="${y+52}" fill="#fff" font-weight="700">${t}</text></g>`;}).join('')}</svg>`,
- volcano:`<svg viewBox="0 0 420 270" font-size="12.5"><line x1="40" y1="230" x2="400" y2="230" stroke="currentColor" stroke-width="2"/><line x1="40" y1="20" x2="40" y2="230" stroke="currentColor" stroke-width="2"/><line x1="40" y1="150" x2="400" y2="150" stroke="#e53935" stroke-dasharray="5 4"/><line x1="160" y1="20" x2="160" y2="230" stroke="var(--sub)" stroke-dasharray="5 4"/><line x1="280" y1="20" x2="280" y2="230" stroke="var(--sub)" stroke-dasharray="5 4"/>
-  <g fill="#9aa5b1">${[[200,220],[230,215],[215,205],[190,200],[245,210],[175,190],[260,195],[210,180],[235,170],[185,165],[250,140],[195,130]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5"/>`).join('')}</g>
-  <g fill="#e53935">${[[300,120],[320,90],[350,60],[340,110],[370,40]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="5"/>`).join('')}</g>
-  <g fill="#1e88e5">${[[140,110],[110,80],[90,55],[125,130]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="5"/>`).join('')}</g>
-  <text x="352" y="30" text-anchor="middle" fill="#e53935" font-weight="800">발현 증가↑</text><text x="90" y="40" text-anchor="middle" fill="#1e88e5" font-weight="800">발현 감소↓</text>
-  <text x="220" y="252" text-anchor="middle" fill="currentColor">X축: log2 Fold Change</text><text x="16" y="125" transform="rotate(-90 16 125)" text-anchor="middle" fill="currentColor">Y축: −log10(P)</text></svg>`
+ riceEvo:`<svg viewBox="0 0 600 190" font-size="15" text-anchor="middle"><text x="150" y="24" font-weight="800" fill="var(--g)">🌏 아시아</text><text x="450" y="24" font-weight="800" fill="#ef6c00">🌍 아프리카</text>
+  ${[[150,'O. rufipogon','야생벼','var(--g)',50],[150,'O. sativa','재배벼 (9천 년 전)','var(--g)',130],[450,'O. barthii','야생벼','#ef6c00',50],[450,'O. glaberrima','재배벼 (3천 년 전)','#ef6c00',130]].map(x=>`<g><rect x="${x[0]-120}" y="${x[4]-8}" width="240" height="52" rx="12" fill="var(--card)" stroke="${x[3]}" stroke-width="3"/><text x="${x[0]}" y="${x[4]+16}" font-weight="800" font-style="italic" fill="currentColor">${x[1]}</text><text x="${x[0]}" y="${x[4]+36}" font-size="13" fill="var(--sub)">${x[2]}</text></g>`).join('')}
+  <text x="150" y="112" font-size="20" fill="var(--g)">▼</text><text x="450" y="112" font-size="20" fill="#ef6c00">▼</text><text x="450" y="186" font-size="13" fill="#ef6c00" font-weight="700">가뭄·건조에 더 강함</text></svg>`,
+ tongil:`<svg viewBox="0 0 600 200" font-size="15" text-anchor="middle">
+  <g font-weight="800"><rect x="20" y="20" width="150" height="50" rx="12" fill="#81c784"/><text x="95" y="51" fill="#1d2a1f">유카라 (자포니카)</text>
+  <rect x="20" y="110" width="150" height="50" rx="12" fill="#ffb74d"/><text x="95" y="141" fill="#1d2a1f">TN1 (인디카)</text>
+  <rect x="230" y="65" width="150" height="50" rx="12" fill="#ffb74d"/><text x="305" y="96" fill="#1d2a1f">IR8 (인디카)</text>
+  <rect x="430" y="65" width="160" height="50" rx="12" fill="#2e7d32"/><text x="510" y="88" fill="#fff">통일벼</text><text x="510" y="106" fill="#fff" font-size="12">IR667 · 1977 쌀 자급</text></g>
+  <g stroke="currentColor" stroke-width="3" fill="none"><path d="M170 45 h30 v90 h-30"/><path d="M200 90 h30"/><path d="M380 90 h50"/></g>
+  <text x="300" y="185" fill="var(--sub)" font-size="12">① 유카라 × TN1 → ② × IR8 = 삼원교잡 (인디카 × 자포니카 원연교잡)</text></svg>`,
+ methane:`<svg viewBox="0 0 600 120" font-size="13.5" text-anchor="middle">${['💧 담수','🚫 혐기 상태','🦠 미생물이 유기물 분해','💨 메탄 발생','🌾 뿌리·줄기로 배출'].map((t,i)=>`<g><rect x="${4+i*120}" y="20" width="108" height="64" rx="12" fill="${i===3?'#e53935':'var(--card)'}" stroke="#e53935" stroke-width="2"/><text x="${58+i*120}" y="58" fill="${i===3?'#fff':'currentColor'}" font-weight="700">${t.length>9?t.slice(0,7):t}</text>${t.length>9?`<text x="${58+i*120}" y="76" fill="${i===3?'#fff':'currentColor'}" font-weight="700">${t.slice(7)}</text>`:''}${i<4?`<text x="${117+i*120}" y="57" fill="#e53935" font-size="16">▶</text>`:''}</g>`).join('')}<text x="300" y="110" fill="var(--sub)" font-size="12.5">해결: 담수 최소화 · 볏짚 분리 배출 · 건답직파</text></svg>`,
+ crops4:`<svg viewBox="0 0 600 130" text-anchor="middle">${[['🫘','두류','콩·팥·녹두·완두','#6d4c41'],['🌾','맥류','밀·보리·귀리','#f9a825'],['🥔','서류','감자·고구마·마','#8d6e63'],['🌽','잡곡류','옥수수·수수·조·메밀','#ef6c00']].map((x,i)=>`<g><rect x="${8+i*148}" y="8" width="138" height="114" rx="14" fill="${x[3]}"/><text x="${77+i*148}" y="48" font-size="30">${x[0]}</text><text x="${77+i*148}" y="80" fill="#fff" font-size="20" font-weight="900">${x[1]}</text><text x="${77+i*148}" y="104" fill="#fff" font-size="12">${x[2]}</text></g>`).join('')}</svg>`,
+ rank:`<svg viewBox="0 0 600 120" text-anchor="middle" font-size="18">${['계','문','강','목','과','속','종'].map((t,i)=>`<g><rect x="${8+i*84}" y="${10+i*6}" width="76" height="${90-i*12}" rx="10" fill="${i>=4?'#6a1b9a':'#ce93d8'}"/><text x="${46+i*84}" y="${60+i*0}" fill="#fff" font-weight="900">${t}</text></g>`).join('')}<text x="300" y="116" font-size="13" fill="var(--sub)">학명은 마지막 두 칸: 속명 + 종소명</text></svg>`,
+ lightcurve:`<svg viewBox="0 0 600 230" font-size="13.5"><line x1="50" y1="150" x2="580" y2="150" stroke="currentColor" stroke-width="2"/><line x1="50" y1="20" x2="50" y2="210" stroke="currentColor" stroke-width="2"/>
+  <path d="M50 190 Q150 80 300 50 T580 40" stroke="var(--g)" stroke-width="4" fill="none"/><line x1="50" y1="190" x2="190" y2="60" stroke="#1e88e5" stroke-width="2" stroke-dasharray="6 4"/>
+  <circle cx="92" cy="150" r="7" fill="#e53935"/><text x="100" y="172" fill="#e53935" font-weight="800">광보상점 (광합성=호흡)</text>
+  <text x="150" y="75" fill="#1e88e5" font-weight="800">초기 기울기 = 양자효율</text><line x1="50" y1="40" x2="580" y2="40" stroke="#f9a825" stroke-dasharray="5 4"/><text x="575" y="32" text-anchor="end" fill="#b26a00" font-weight="800">Amax · 광포화</text>
+  <text x="58" y="205" fill="var(--sub)">빛 0: 호흡만 (−)</text><text x="570" y="170" text-anchor="end" fill="currentColor">광도(PPFD) →</text><text x="20" y="100" transform="rotate(-90 20 100)" text-anchor="middle" fill="currentColor">광합성 속도</text></svg>`,
+ receptor:`<svg viewBox="0 0 600 140" text-anchor="middle" font-size="14"><defs><linearGradient id="sp" x1="0" x2="1"><stop offset="0" stop-color="#7b1fa2"/><stop offset=".2" stop-color="#3949ab"/><stop offset=".4" stop-color="#43a047"/><stop offset=".6" stop-color="#fdd835"/><stop offset=".8" stop-color="#e53935"/><stop offset="1" stop-color="#6d0000"/></linearGradient></defs>
+  <rect x="10" y="20" width="580" height="34" rx="8" fill="url(#sp)"/><g fill="var(--sub)" font-size="12"><text x="20" y="70" text-anchor="start">300nm</text><text x="580" y="70" text-anchor="end">800nm</text></g>
+  <g font-weight="800"><text x="60" y="100" fill="#7b1fa2">UVR8</text><text x="60" y="120" font-size="12" fill="var(--sub)">자외선 · 스트레스</text>
+  <text x="200" y="100" fill="#3949ab">크립토크롬 · 포토트로핀</text><text x="200" y="120" font-size="12" fill="var(--sub)">청색 ~450nm</text>
+  <text x="470" y="100" fill="#e53935">피토크롬 (R ↔ FR)</text><text x="470" y="120" font-size="12" fill="var(--sub)">적색 ~660 · 원적색 ~730</text></g></svg>`,
+ cwsi:`<svg viewBox="0 0 600 110" text-anchor="middle" font-size="15"><defs><linearGradient id="cw" x1="0" x2="1"><stop offset="0" stop-color="#1e88e5"/><stop offset=".5" stop-color="#fdd835"/><stop offset="1" stop-color="#e53935"/></linearGradient></defs><rect x="30" y="20" width="540" height="34" rx="17" fill="url(#cw)"/>
+  <g font-weight="900"><text x="40" y="82" text-anchor="start" fill="#1e88e5">0 = 💧 물 충분</text><text x="560" y="82" text-anchor="end" fill="#e53935">1 = 🔥 극심한 스트레스</text></g><text x="300" y="104" fill="var(--sub)" font-size="12.5">잎이 증산으로 식으면 0에 가깝고, 기공을 닫아 뜨거워지면 1에 가까움</text></svg>`,
+ pband:`<svg viewBox="0 0 600 170" font-size="13.5">${[['적절','M10 120 C40 20 70 120 100 70 S150 80 190 75','var(--g)',0],['너무 작음 → 진동','M10 120 L30 30 L50 120 L70 30 L90 120 L110 30 L130 120 L150 30 L170 120 L190 30','#e53935',200],['너무 큼 → offset','M10 120 C60 110 100 100 190 100','#1e88e5',400]].map(x=>`<g transform="translate(${x[3]},0)"><line x1="5" y1="75" x2="195" y2="75" stroke="var(--sub)" stroke-dasharray="5 4"/><text x="8" y="68" font-size="11" fill="var(--sub)">설정값</text><path d="${x[1]}" stroke="${x[2]}" stroke-width="3.5" fill="none"/><text x="100" y="155" text-anchor="middle" font-weight="800" fill="${x[2]}">${x[0]}</text></g>`).join('')}</svg>`,
+ ec:`<svg viewBox="0 0 600 150" text-anchor="middle" font-size="15"><rect x="10" y="10" width="285" height="130" rx="14" fill="#fdecec"/><text x="152" y="42" font-weight="900" fill="#e53935" font-size="20">EC ↑ 높음</text><text x="152" y="74" fill="#1d2a1f">삼투압↑ · 흡수 저해 · 염류장해</text><text x="152" y="104" fill="#1d2a1f" font-weight="800">품질↑ (당도·저장성)</text><text x="152" y="128" fill="#1d2a1f" font-weight="800">수량↓</text>
+  <rect x="305" y="10" width="285" height="130" rx="14" fill="#e8f1fb"/><text x="447" y="42" font-weight="900" fill="#1e88e5" font-size="20">EC ↓ 낮음</text><text x="447" y="74" fill="#1d2a1f">삼투압↓</text><text x="447" y="104" fill="#1d2a1f" font-weight="800">생육량↑</text><text x="447" y="128" fill="#1d2a1f" font-weight="800">품질↓</text></svg>`,
+ snap:`<svg viewBox="0 0 600 190" text-anchor="middle" font-size="14">
+  ${[[150,30,'#c62828','RR 붉은'],[450,30,'#ffffff','rr 흰']].map(x=>`<g><circle cx="${x[0]}" cy="${x[1]+10}" r="20" fill="${x[2]}" stroke="#999"/><text x="${x[0]+60}" y="${x[1]+15}" fill="currentColor" font-weight="700">${x[3]}</text></g>`).join('')}<text x="300" y="46" font-size="22" fill="currentColor">×</text>
+  <circle cx="300" cy="100" r="20" fill="#f48fb1" stroke="#999"/><text x="360" y="105" fill="currentColor" font-weight="800">F1 Rr 전부 분홍</text>
+  ${[['#c62828','RR'],['#f48fb1','Rr'],['#f48fb1','Rr'],['#ffffff','rr']].map((x,i)=>`<g><circle cx="${180+i*80}" cy="160" r="17" fill="${x[0]}" stroke="#999"/><text x="${180+i*80}" y="188" font-size="12" fill="var(--sub)">${x[1]}</text></g>`).join('')}<text x="80" y="165" fill="#e53935" font-weight="900">F2 1 : 2 : 1</text></svg>`,
+ hetero:`<svg viewBox="0 0 600 180" font-size="13" text-anchor="middle">${[['F2',50],['F3',25],['F4',12.5],['F5',6.25],['F6',3.125],['F7',1.56]].map((x,i)=>`<g><rect x="${20+i*96}" y="${140-x[1]*2.4}" width="70" height="${x[1]*2.4}" rx="6" fill="#8d6e63"/><text x="${55+i*96}" y="${132-x[1]*2.4}" fill="currentColor" font-weight="800">${x[1]}%</text><text x="${55+i*96}" y="160" fill="var(--sub)" font-weight="700">${x[0]}</text></g>`).join('')}<text x="300" y="178" fill="#4e342e" font-weight="800">Hn = (½)ⁿ·H₀ · Fn = 1 − (½)ⁿ</text></svg>`
 };
 
 // ---------- 웹툰 목록 ----------
-function _oldToonList(){
+function toonList(){
   const read=toonRead();
-  $app.innerHTML=`<section class="hero toon-hero"><small>읽기만 해도 이해되는</small><h1>균박사의 미생물 웹툰</h1><p>1화 = 1주차 · 5분이면 끝 · 끝나면 3문제 확인</p><div class="kpis"><div class="kpi"><b>${read.length}/${T.length}</b><span>읽음</span></div></div></section>
-  <div class="cast"><div>${charSVG('doc','smile')}<b>균박사</b><small>학점 4.5 미생물 선배</small></div><div>${charSVG('kid','wow')}<b>새싹이</b><small>시험 앞둔 원예과 신입생</small></div></div>
+  $app.innerHTML=`<section class="hero toon-hero"><small>읽기만 해도 이해되는</small><h1>벼박사의 식물생산 웹툰</h1><p>1화 = 1주차 · 5분이면 끝 · 끝나면 3문제 확인</p><div class="kpis"><div class="kpi"><b>${read.length}/${T.length}</b><span>읽음</span></div></div></section>
+  <div class="cast"><div>${charSVG('doc','smile')}<b>벼박사</b><small>학점 4.5 농대 선배</small></div><div>${charSVG('kid','wow')}<b>새싹이</b><small>시험 앞둔 원예과 신입생</small></div></div>
   ${T.map(e=>`<a class="ep" href="#toon/${e.ep}" style="--c:${e.color}"><span class="ep-n">${e.ep}화</span><span class="ep-e">${e.emoji}</span><span class="ep-t"><b>${esc(e.title)}</b><small>${e.w}주차 · ${esc(e.sub)}</small></span><span class="ep-s">${read.includes(e.ep)?'✅':'›'}</span></a>`).join('')}`;
 }
-function bubble(who,text,side){return `<div class="bb ${side} ${who}"><span class="bb-n">${who==='doc'?'균박사':'새싹이'}</span>${text}</div>`;}
+function bubble(who,text,side){return `<div class="bb ${side} ${who}"><span class="bb-n">${who==='doc'?'벼박사':'새싹이'}</span>${text}</div>`;}
 function panel(p){
   if(p.t==='board') return `<div class="pn board"><div class="board-t">📌 ${esc(p.title)}</div><div class="board-b">${p.html}</div></div>`;
   if(p.t==='fig') return `<div class="pn figp"><div class="fig-t">🖼️ ${esc(p.title)}</div><div class="fig-s">${FIG[p.svg]||''}</div><div class="fig-c">${esc(p.cap)}</div></div>`;
@@ -488,11 +492,11 @@ function route(){
   const h=(location.hash||'#home').slice(1);
   document.querySelectorAll('.tabbar a').forEach(a=>a.classList.toggle('on',a.dataset.tab===h||(h==='quiz'&&a.dataset.tab==='home')));
   if(h==='quiz'){ if(Q) renderQ(); else {location.hash='home';} return; }
-  document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.tab==='toon'&&h.startsWith('toon'))a.classList.add('on');if(a.dataset.tab==='home'&&h.startsWith('drill'))a.classList.add('on');});
+  document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.tab==='toon'&&h.startsWith('toon'))a.classList.add('on');if(a.dataset.tab==='cards'&&h==='cards')a.classList.add('on');if(a.dataset.tab==='home'&&h.startsWith('drill'))a.classList.add('on');});
   Q=null;
   if(h.startsWith('toon/')){ toonView(+h.split('/')[1]); window.scrollTo(0,0); return; }
   if(h.startsWith('drill/')){ drill(h.split('/')[1]); window.scrollTo(0,0); return; }
-  ({home,dex,check,pairs,stats,toon:toonList}[h]||home)();
+  ({home,dex,check,pairs,stats,toon:toonList,cards:cardsView}[h]||home)();
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
